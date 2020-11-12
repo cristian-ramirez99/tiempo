@@ -63,7 +63,6 @@ function processJSONMunicipio(){
     if(this.readyState==4 && this.status==200)
     {
         var tiempoActual=null;
-        var perro=null;
         object=JSON.parse(this.responseText);
         var descripcion=object.stateSky.description;
         var altitud = object.municipio.LONGITUD_ETRS89_REGCAN95;
