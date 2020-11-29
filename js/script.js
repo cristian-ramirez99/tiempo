@@ -3,7 +3,7 @@ const NUBE = 2;
 const LLUVIA = 3;
 
 let municipios = [];
-
+let municipiosTotales = [];
 function loadEventsJSON() {
 
     //Barcelona
@@ -22,6 +22,8 @@ function loadEventsJSON() {
     loadJSON("43148");
 
 }
+
+
 function loadEvents() {
     loadMap();
     loadEventsJSON();
@@ -30,7 +32,6 @@ function loadEvents() {
     map.on('click', goTo);
     inputEvents();
 }
-
 function loadMap() {
     mapboxgl.accessToken = 'pk.eyJ1IjoiY3Jpc3RpYW5yYW1pcmV6OTkiLCJhIjoiY2toNHBzbHgxMDBqMzJ2cDV0aTNraGo3YyJ9.0OsfMH_GY07BxQ7xks3dYA';
     map = new mapboxgl.Map({
@@ -39,15 +40,6 @@ function loadMap() {
         center: [2.17634927, 41.38424664],
         zoom: 6
     });
-}
-function getNearLocation(altitud, latitud) {
-    geoCodingClient.reverseGeocode({
-        query: [altitud, latitud]
-    })
-        .send()
-        .then(response => {
-            const match = response.body;
-        });
 }
 function passCodIneToJSON() {
     var indexMunicipio = document.getElementById("municipios").options.selectedIndex - 1;
@@ -107,7 +99,11 @@ function processJSONDesplegable() {
         let codINE = 0;
         let i = 0;
         do {
+            var altitud = object.municipios[i].LONGITUD_ETRS89_REGCAN95;
+            var latitud = object.municipios[i].LATITUD_ETRS89_REGCAN95;
             codINE = object.municipios[i].CODIGOINE;
+
+            municipiosTotales.push(new Municipio(altitud, latitud, null));
             municipios.innerHTML += "<option value=" + codINE + ">" + object.municipios[i].NOMBRE + "</option>";
             i++;
         } while (length > i);
@@ -140,6 +136,7 @@ function processJSONMunicipio() {
         }
     }
 }
+
 function changeMapStyle(input) {
     var menu = document.getElementById("menu");
     var inputs = document.getElementsByTagName("input");
@@ -159,8 +156,25 @@ function changeCursor() {
 }
 
 function goTo(e) {
-    //var marker = new mapboxgl.Marker().setLngLat([e.lngLat.lng, e.lngLat.lat]).addTo(map);
-    flying(e.lngLat.lng, e.lngLat.lat)
+    var bounds = 0.1;
+    var posicionActual = new mapboxgl.LngLat(e.lngLat.lng, e.lngLat.lat);
+
+    let i = 0;
+    do {
+        var municipioBounds = new mapboxgl.LngLatBounds(
+            new mapboxgl.LngLat(municipiosTotales[i].altitud - bounds, municipiosTotales[i].latitud - bounds),
+            new mapboxgl.LngLat(municipiosTotales[i].altitud + bounds, municipiosTotales[i].latitud + bounds)
+        );
+        if (municipioBounds.contains(posicionActual)) {
+            var codigo = document.getElementById("municipios").options.item(i + 1).value;
+            codigo = codigo.slice(0, 5);
+            loadJSON(codigo);
+            break;
+        }
+        i++;
+    } while (municipiosTotales.length > i);
+
+    flying(e.lngLat.lng, e.lngLat.lat);
 }
 
 function inputEvents() {
