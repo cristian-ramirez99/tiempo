@@ -56,15 +56,11 @@ function passCodIneToJSON() {
 
     //Si distinto de opcion vacia
     if (indexMunicipio >= 0) {
-        //Manipulamos codINE
-        var codINE = this.value;
-        codINE = codINE.slice(0, 5);
-
         //Fly
         haveToFly = true;
 
         //Cargamos el municipio 
-        loadJSON(codINE);
+        loadJSON(this.value);
     }
 }
 function addFeatures() {
@@ -121,6 +117,7 @@ function processJSONDesplegable() {
             var altitud = object.municipios[i].LONGITUD_ETRS89_REGCAN95;
             var latitud = object.municipios[i].LATITUD_ETRS89_REGCAN95;
             codINE = object.municipios[i].CODIGOINE;
+            codINE = codINE.slice(0, 5);
 
             //Guardamos en un array todos los municipios
             municipiosTotales.push(new Municipio(altitud, latitud, null, false));
@@ -207,14 +204,12 @@ function changeCursor() {
 }
 function checkBoundsOfVisibleRegion(e) {
     var zoom = map.getZoom();
-    console.log(zoom);
     var minZoom = 12.5;
 
     //Si zoom > 12.5 carga municipios que actualmente se ven en el mapa 
     if (zoom > minZoom) {
-        //Bounds de mi actual posicion
+        //Bounds del mapa
         var camara = map.getBounds();
-        console.log(camara);
 
         let i = 0;
 
@@ -223,7 +218,6 @@ function checkBoundsOfVisibleRegion(e) {
 
             if (camara.contains(municipio)) {
                 var codigo = document.getElementById("municipios").options.item(i + 1).value;
-                codigo = codigo.slice(0, 5);
                 loadJSON(codigo);
             }
             i++;
@@ -232,24 +226,38 @@ function checkBoundsOfVisibleRegion(e) {
 }
 function checkBounds(e) {
     //Comprueba si hay municipio cercano al clickar 
-    var bounds = 0.1;
-    var posicionActual = new mapboxgl.LngLat(e.lngLat.lng, e.lngLat.lat);
-
+    let distAux = 0;
+    let distMin = 0;
     let i = 0;
+    let municipioMin = 0;
+
+    var firstTime = true
+
     do {
-        var municipioBounds = new mapboxgl.LngLatBounds(
-            new mapboxgl.LngLat(municipiosTotales[i].altitud - bounds, municipiosTotales[i].latitud - bounds),
-            new mapboxgl.LngLat(municipiosTotales[i].altitud + bounds, municipiosTotales[i].latitud + bounds)
-        );
-        if (municipioBounds.contains(posicionActual)) {
-            var codigo = document.getElementById("municipios").options.item(i + 1).value;
-            codigo = codigo.slice(0, 5);
-            haveToFly = true;
-            loadJSON(codigo);
-            break;
+        //Posicion Actual
+        var alt1 = e.lngLat.lng;
+        var lat1 = e.lngLat.lat;
+
+        //Municipio 
+        var alt2 = municipiosTotales[i].altitud;
+        var lat2 = municipiosTotales[i].latitud;
+
+        if (firstTime) {
+            distMin = Math.sqrt(Math.pow(alt2 - alt1, 2) + Math.pow(lat2 - lat1, 2));
+            firstTime = false;
+        } else {
+            distAux = Math.sqrt(Math.pow(alt2 - alt1, 2) + Math.pow(lat2 - lat1, 2));
+
+            if (distMin > distAux) {
+                distMin = distAux;
+                municipioMin = i;
+            }
         }
         i++;
     } while (municipiosTotales.length > i);
+    var codigo = document.getElementById("municipios").options.item(municipioMin + 1).value;
+    haveToFly = true;
+    loadJSON(codigo);
 }
 function goTo(e) {
     checkBounds(e);
