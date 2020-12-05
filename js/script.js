@@ -2,7 +2,7 @@ const SOL = 1;
 const NUBE = 2;
 const LLUVIA = 3;
 
-haveToFly = false;
+let haveToFly = false;
 let municipios = [];
 let municipiosTotales = [];
 
@@ -27,16 +27,16 @@ function loadEventsProvincias() {
 }
 
 function loadEvents() {
+    //JSON 
     loadMap();
     loadEventsProvincias();
+
+    //Element events
     document.getElementById("municipios").addEventListener('change', passCodIneToJSON);
 
+    //Map events
     map.on("mousemove", changeCursor);
     map.on('click', goTo);
-
-    //no es resize
-    //map.on('resize', checkBoundsOfVisibleRegion);
-
     map.on('drag', checkBoundsOfVisibleRegion);
 
     inputEvents();
@@ -120,7 +120,7 @@ function processJSONDesplegable() {
             codINE = codINE.slice(0, 5);
 
             //Guardamos en un array todos los municipios
-            municipiosTotales.push(new Municipio(altitud, latitud, null, false));
+            municipiosTotales.push(new Municipio(altitud, latitud, null));
 
             //Añdimos municipios la desplegable
             e.innerHTML += "<option value=" + codINE + ">" + object.municipios[i].NOMBRE + "</option>";
@@ -157,7 +157,7 @@ function processJSONMunicipio() {
             }
 
             //Añadir el municipio a cargar en el array 
-            municipios.push(new Municipio(altitud, latitud, tiempoActual, true));
+            municipios.push(new Municipio(altitud, latitud, tiempoActual));
 
             //Añadir imagen al mapa
             loadImage();
@@ -224,7 +224,7 @@ function checkBoundsOfVisibleRegion(e) {
         } while (municipiosTotales.length > i);
     }
 }
-function checkBounds(e) {
+function checkDistance(e) {
     //Comprueba si hay municipio cercano al clickar 
     let distAux = 0;
     let distMin = 0;
@@ -260,7 +260,7 @@ function checkBounds(e) {
     loadJSON(codigo);
 }
 function goTo(e) {
-    checkBounds(e);
+    checkDistance(e);
     flying(e.lngLat.lng, e.lngLat.lat);
 }
 
@@ -285,11 +285,10 @@ function loadJSONDesplegable(codigo) {
     xmlhttp.send();
 }
 class Municipio {
-    constructor(altitud, latitud, tiempo, visible) {
+    constructor(altitud, latitud, tiempo) {
         this.altitud = altitud;
         this.latitud = latitud;
         this.tiempo = tiempo;
-        this.visible = visible;
     }
 }
 
