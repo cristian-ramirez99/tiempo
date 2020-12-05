@@ -2,9 +2,11 @@ const SOL = 1;
 const NUBE = 2;
 const LLUVIA = 3;
 
+haveToFly = false;
 let municipios = [];
 let municipiosTotales = [];
-function loadEventsJSON() {
+
+function loadEventsProvincias() {
 
     //Barcelona
     loadJSONDesplegable("08");
@@ -13,6 +15,7 @@ function loadEventsJSON() {
     //Girona
     loadJSONDesplegable("17");
     loadJSON("17079");
+
     //Lleida
     loadJSONDesplegable("25");
     loadJSON("25120");
@@ -23,16 +26,23 @@ function loadEventsJSON() {
 
 }
 
-
 function loadEvents() {
     loadMap();
-    loadEventsJSON();
+    loadEventsProvincias();
     document.getElementById("municipios").addEventListener('change', passCodIneToJSON);
+
     map.on("mousemove", changeCursor);
     map.on('click', goTo);
+
+    //no es resize
+    //map.on('resize', checkBoundsOfVisibleRegion);
+
+    map.on('drag', checkBoundsOfVisibleRegion);
+
     inputEvents();
 }
 function loadMap() {
+    //Cargamos el mapa 
     mapboxgl.accessToken = 'pk.eyJ1IjoiY3Jpc3RpYW5yYW1pcmV6OTkiLCJhIjoiY2toNHBzbHgxMDBqMzJ2cDV0aTNraGo3YyJ9.0OsfMH_GY07BxQ7xks3dYA';
     map = new mapboxgl.Map({
         container: 'map',
@@ -46,8 +56,14 @@ function passCodIneToJSON() {
 
     //Si distinto de opcion vacia
     if (indexMunicipio >= 0) {
+        //Manipulamos codINE
         var codINE = this.value;
         codINE = codINE.slice(0, 5);
+
+        //Fly
+        haveToFly = true;
+
+        //Cargamos el municipio 
         loadJSON(codINE);
     }
 }
@@ -91,53 +107,87 @@ function loadImage() {
     };
 }
 function processJSONDesplegable() {
+    //Carga los municipios en el desplegable
     if (this.readyState == 4 && this.status == 200) {
         var object = JSON.parse(this.responseText);
-        var municipios = document.getElementById("municipios");
+        var e = document.getElementById("municipios");
         var length = Object.keys(object.municipios).length;
 
         let codINE = 0;
         let i = 0;
+
         do {
+            //Datos de JSON
             var altitud = object.municipios[i].LONGITUD_ETRS89_REGCAN95;
             var latitud = object.municipios[i].LATITUD_ETRS89_REGCAN95;
             codINE = object.municipios[i].CODIGOINE;
 
-            municipiosTotales.push(new Municipio(altitud, latitud, null));
-            municipios.innerHTML += "<option value=" + codINE + ">" + object.municipios[i].NOMBRE + "</option>";
+            //Guardamos en un array todos los municipios
+            municipiosTotales.push(new Municipio(altitud, latitud, null, false));
+
+            //Añdimos municipios la desplegable
+            e.innerHTML += "<option value=" + codINE + ">" + object.municipios[i].NOMBRE + "</option>";
+
             i++;
         } while (length > i);
     }
 }
 function processJSONMunicipio() {
     if (this.readyState == 4 && this.status == 200) {
-        let tiempoActual = null;
+
         var object = JSON.parse(this.responseText);
-        var descripcion = object.stateSky.description;
+
+        //Datos JSON
         var altitud = object.municipio.LONGITUD_ETRS89_REGCAN95;
         var latitud = object.municipio.LATITUD_ETRS89_REGCAN95
-        var lluvia = object.lluvia;
 
-        if (lluvia > 0) {
-            tiempoActual = LLUVIA;
+        //Si son las 4 provincias o el municipio no se muestra todavia en el mapa
+        if (municipios.length < 4 || !isMunicipioLoaded(altitud, latitud)) {
+            let tiempoActual = null;
+
+            //Datos JSON
+            var descripcion = object.stateSky.description;
+            var lluvia = object.lluvia;
+
+            //GetWeather 
+            if (lluvia > 0) {
+                tiempoActual = LLUVIA;
+            }
+            else if (descripcion === "Despejado" || descripcion === "Poco nuboso") {
+                tiempoActual = SOL;
+            } else {
+                tiempoActual = NUBE;
+            }
+
+            //Añadir el municipio a cargar en el array 
+            municipios.push(new Municipio(altitud, latitud, tiempoActual, true));
+
+            //Añadir imagen al mapa
+            loadImage();
+            addFeatures();
         }
-        else if (descripcion === "Despejado" || descripcion === "Poco nuboso") {
-            tiempoActual = SOL;
-        } else {
-            tiempoActual = NUBE;
-        }
-        municipios.push(new Municipio(altitud, latitud, tiempoActual));
 
-        loadImage();
-        addFeatures();
-
-        if (municipios.length > 4) {
+        //Fly
+        if (haveToFly) {
             flying(altitud, latitud);
+            haveToFly = false;
         }
     }
 }
+function isMunicipioLoaded(alt, lat) {
+    //Mira si imagen del municipio ya cargada
+    for (let i = 0; municipios.length > i; i++) {
+        var altMun = municipios[i].altitud;
+        var latMun = municipios[i].latitud;
 
+        if (altMun == alt && latMun == lat) {
+            return true;
+        }
+    }
+    return false;
+}
 function changeMapStyle(input) {
+    //Cambia mapa a calle o satelite 
     var menu = document.getElementById("menu");
     var inputs = document.getElementsByTagName("input");
 
@@ -145,6 +195,7 @@ function changeMapStyle(input) {
     map.setStyle('mapbox://styles/mapbox/' + inputID);
 }
 function flying(altitud, latitud) {
+    //Fly
     map.flyTo({
         center: [altitud, latitud],
         zoom: 12,
@@ -154,8 +205,33 @@ function flying(altitud, latitud) {
 function changeCursor() {
     map.getCanvas().style.cursor = 'crosshair';
 }
+function checkBoundsOfVisibleRegion(e) {
+    var zoom = map.getZoom();
+    console.log(zoom);
+    var minZoom = 12.5;
 
-function goTo(e) {
+    //Si zoom > 12.5 carga municipios que actualmente se ven en el mapa 
+    if (zoom > minZoom) {
+        //Bounds de mi actual posicion
+        var camara = map.getBounds();
+        console.log(camara);
+
+        let i = 0;
+
+        do {
+            var municipio = new mapboxgl.LngLat(municipiosTotales[i].altitud, municipiosTotales[i].latitud);
+
+            if (camara.contains(municipio)) {
+                var codigo = document.getElementById("municipios").options.item(i + 1).value;
+                codigo = codigo.slice(0, 5);
+                loadJSON(codigo);
+            }
+            i++;
+        } while (municipiosTotales.length > i);
+    }
+}
+function checkBounds(e) {
+    //Comprueba si hay municipio cercano al clickar 
     var bounds = 0.1;
     var posicionActual = new mapboxgl.LngLat(e.lngLat.lng, e.lngLat.lat);
 
@@ -168,12 +244,15 @@ function goTo(e) {
         if (municipioBounds.contains(posicionActual)) {
             var codigo = document.getElementById("municipios").options.item(i + 1).value;
             codigo = codigo.slice(0, 5);
+            haveToFly = true;
             loadJSON(codigo);
             break;
         }
         i++;
     } while (municipiosTotales.length > i);
-
+}
+function goTo(e) {
+    checkBounds(e);
     flying(e.lngLat.lng, e.lngLat.lat);
 }
 
@@ -197,11 +276,12 @@ function loadJSONDesplegable(codigo) {
     xmlhttp.open("GET", "https://www.el-tiempo.net/api/json/v2/provincias/" + codigo + "/municipios", true);
     xmlhttp.send();
 }
-
 class Municipio {
-    constructor(altitud, latitud, tiempo) {
+    constructor(altitud, latitud, tiempo, visible) {
         this.altitud = altitud;
         this.latitud = latitud;
         this.tiempo = tiempo;
+        this.visible = visible;
     }
 }
+
