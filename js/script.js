@@ -2,6 +2,7 @@ const SOL = 1;
 const NUBE = 2;
 const LLUVIA = 3;
 
+let minZoom = 12.5
 let haveToFly = false;
 let municipios = [];
 let municipiosTotales = [];
@@ -33,11 +34,16 @@ function loadEvents() {
 
     //Element events
     document.getElementById("municipios").addEventListener('change', passCodIneToJSON);
+    document.getElementById("menosZoomButton").addEventListener('click', setZoomOfVisibleRegion);
+    document.getElementById("masZoomButton").addEventListener('click', setZoomOfVisibleRegion);
+    document.getElementById("cleanMarkersButton").addEventListener('click', cleanMarkers);
 
     //Map events
     map.on("mousemove", changeCursor);
     map.on('click', goTo);
     map.on('drag', checkBoundsOfVisibleRegion);
+    map.on('wheel', checkBoundsOfVisibleRegion);
+    map.on('wheel', getZoom);
 
     inputEvents();
 }
@@ -50,6 +56,29 @@ function loadMap() {
         center: [2.17634927, 41.38424664],
         zoom: 6
     });
+}
+function getZoom() {
+    var zoom = map.getZoom();
+    document.getElementById('zoom').innerHTML = zoom;
+}
+function setZoomOfVisibleRegion() {
+    var zoom = new Number(this.value);
+    minZoom += zoom;
+    document.getElementById('minZoom').innerHTML = minZoom;
+}
+function cleanMarkers() {
+    markers = document.getElementsByClassName('marker');
+    let i = markers.length - 1;
+    while (markers.length > 4) {
+        //Remove element
+        var padre = markers[i].parentNode;
+        padre.removeChild(markers[i]);
+
+        //Remove from array
+        municipios.pop();
+
+        i--;
+    }
 }
 function passCodIneToJSON() {
     var indexMunicipio = document.getElementById("municipios").options.selectedIndex - 1;
@@ -208,7 +237,6 @@ function changeCursor() {
 }
 function checkBoundsOfVisibleRegion(e) {
     var zoom = map.getZoom();
-    var minZoom = 12.5;
 
     //Si zoom > 12.5 carga municipios que actualmente se ven en el mapa 
     if (zoom > minZoom) {

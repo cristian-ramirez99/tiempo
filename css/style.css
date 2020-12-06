@@ -1,0 +1,8 @@
+.outer
+{
+    width:100%;
+}
+.inner
+{
+    display: inline-block;
+}

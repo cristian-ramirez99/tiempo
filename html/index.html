@@ -7,6 +7,7 @@
     <script src='https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.js'></script>
     <link href='https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.css' rel='stylesheet' />
     <script src="../js/script.js" type=text/javascript></script>
+    <link href="../css/style.css" rel="stylesheet" type="text/css">
     <title>Mapa interactivo </title>
 </head>
 
@@ -14,11 +15,22 @@
     <script>
         window.addEventListener('load', loadEvents);
     </script>
-    <div id="menu">
-        <input type="radio" id="streets-v11" name="alternar" checked="checked" value="streets">
-        <label for="streets-v11">Calle</label>
-        <input type="radio" id="satellite-v9" name="alternar" value="satellite">
-        <label for="satelite-v9">Satelite</label>
+    <div class='outer' id="menu">
+        <input class='inner' type="radio" id="streets-v11" name="alternar" checked="checked" value="streets">
+        <label class='inner' for="streets-v11">Calle</label>
+        <input class='inner' type="radio" id="satellite-v9" name="alternar" value="satellite">
+        <label class='inner' for="satelite-v9">Satelite</label>
+    </div>
+    <div>
+        <button id='cleanMarkersButton'>Borrar</button>
+    </div>
+    <div class='outer'>
+        <p class='inner'>Zoom:</p>
+        <p class='inner' id='zoom'>6</p>
+        <button class='inner' id='menosZoomButton' value=-0.5>-0.5</button>
+        <p class='inner'>Zoom Visible Region:</p>
+        <p class='inner' id='minZoom'>12.5</p>
+        <button class='inner' id='masZoomButton' value=0.5>+0.5</button>
     </div>
     <div>
         <select id="municipios">
