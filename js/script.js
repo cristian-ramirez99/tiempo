@@ -64,7 +64,9 @@ function passCodIneToJSON() {
     }
 }
 function addFeatures() {
-    let i = 0;
+    //Añadimos marker de municipios.length - 1
+    var i = municipios.length - 1;
+
     geojson.features.forEach(function (marker) {
         // create a DOM element for the marker
         var el = document.createElement('div');
@@ -80,7 +82,6 @@ function addFeatures() {
         new mapboxgl.Marker(el)
             .setLngLat(marker.geometry.coordinates)
             .addTo(map);
-        i++;
     });
 }
 function loadImage() {
@@ -117,6 +118,8 @@ function processJSONDesplegable() {
             var altitud = object.municipios[i].LONGITUD_ETRS89_REGCAN95;
             var latitud = object.municipios[i].LATITUD_ETRS89_REGCAN95;
             codINE = object.municipios[i].CODIGOINE;
+
+            //Manipulamos codINE para poder acceder a la api
             codINE = codINE.slice(0, 5);
 
             //Guardamos en un array todos los municipios
@@ -129,6 +132,7 @@ function processJSONDesplegable() {
         } while (length > i);
     }
 }
+
 function processJSONMunicipio() {
     if (this.readyState == 4 && this.status == 200) {
 
@@ -208,7 +212,7 @@ function checkBoundsOfVisibleRegion(e) {
 
     //Si zoom > 12.5 carga municipios que actualmente se ven en el mapa 
     if (zoom > minZoom) {
-        //Bounds del mapa
+        //Bounds de la parte del mapa que vemos
         var camara = map.getBounds();
 
         let i = 0;
